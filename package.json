@@ -1,0 +1,42 @@
+{
+  "name": "pi-behind-byobu",
+  "version": "0.1.0",
+  "description": "Make Pi's session title drive Byobu/tmux window names, so a window list says what each Pi session is doing instead of \"node\".",
+  "keywords": [
+    "pi",
+    "pi-coding-agent",
+    "byobu",
+    "tmux",
+    "terminal",
+    "window-title",
+    "cli"
+  ],
+  "license": "MIT",
+  "author": "4ier",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "bin": {
+    "pi-behind-byobu": "bin/pi-behind-byobu.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "README.zh-CN.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/4ier/pi-behind-byobu.git"
+  },
+  "bugs": {
+    "url": "https://github.com/4ier/pi-behind-byobu/issues"
+  },
+  "homepage": "https://github.com/4ier/pi-behind-byobu#readme"
+}
