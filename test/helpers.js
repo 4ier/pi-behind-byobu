@@ -7,7 +7,6 @@ import path from "node:path";
 import { createTmux } from "../src/tmux.js";
 import { createUi } from "../src/ui.js";
 
-export const FIELD_SEP = "\u001f";
 export const STOCK_FORMAT =
   "#{?pane_in_mode,[tmux],#{pane_current_command}}#{?pane_dead,[dead],}";
 
@@ -62,13 +61,19 @@ export function createFakeTmux({
       const lines = panes.map((pane) =>
         [
           pane.paneId,
-          pane.title,
           pane.active ?? "1",
           pane.inMode ?? "0",
           pane.windowId ?? pane.paneId,
-          pane.windowName,
-        ].join(FIELD_SEP),
+          pane.title,
+        ].join("|"),
       );
+      return ok(lines.length === 0 ? "" : `${lines.join("\n")}\n`);
+    }
+
+    if (command === "list-windows") {
+      const lines = panes
+        .map((pane) => `${pane.windowId ?? pane.paneId}|${pane.windowName}`)
+        .filter((line, index, all) => all.indexOf(line) === index);
       return ok(lines.length === 0 ? "" : `${lines.join("\n")}\n`);
     }
 

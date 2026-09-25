@@ -10,15 +10,96 @@ import { execFile } from "node:child_process";
 
 import { ToolError } from "./errors.js";
 
-const FIELD_SEP = "\u001f";
+/** Printable on purpose; see splitRecord(). */
+export const PANE_SEPARATOR = "|";
+
 const PANE_FORMAT = [
   "#{pane_id}",
-  "#{pane_title}",
   "#{pane_active}",
   "#{pane_in_mode}",
   "#{window_id}",
-  "#{window_name}",
-].join(FIELD_SEP);
+  "#{pane_title}",
+].join(PANE_SEPARATOR);
+const WINDOW_FORMAT = ["#{window_id}", "#{window_name}"].join(PANE_SEPARATOR);
+
+/**
+ * Split a `-F` line into its structured prefix and its free-text tail.
+ *
+ * tmux does not agree with itself about output: on tmux 3.4 (Ubuntu 24.04) a
+ * control character in the format comes back escaped as the literal text
+ * "\037", which silently collapsed every record into one unparsable field.
+ * Printable separators survive everywhere, so the separator is "|" and the one
+ * free-text field of each listing is placed last, where a stray separator is
+ * rejoined instead of shifting the layout.
+ *
+ * @param {string} line
+ * @param {number} parts number of leading structured fields
+ * @returns {string[] | null} structured fields plus the rejoined tail, or null
+ */
+function splitRecord(line, parts) {
+  const fields = line.split(PANE_SEPARATOR);
+  if (fields.length < parts + 1) return null;
+  return [...fields.slice(0, parts), fields.slice(parts).join(PANE_SEPARATOR)];
+}
+
+/**
+ * @param {string} stdout output of `list-panes -a -F <PANE_FORMAT>`
+ * @returns {Array<{paneId: string, active: string, inMode: string, windowId: string, title: string}>}
+ */
+export function parsePaneListing(stdout) {
+  const panes = [];
+  let skipped = 0;
+
+  for (const line of stdout.split("\n")) {
+    if (line === "") continue;
+    const fields = splitRecord(line, 4);
+    if (fields === null) {
+      skipped += 1;
+      continue;
+    }
+    const [paneId, active, inMode, windowId, title] = fields;
+    panes.push({ paneId, active, inMode, windowId, title });
+  }
+
+  assertParsed(panes.length, skipped, "list-panes");
+  return panes;
+}
+
+/**
+ * @param {string} stdout output of `list-windows -a -F <WINDOW_FORMAT>`
+ * @returns {Map<string, string>} window id to window name
+ */
+export function parseWindowNames(stdout) {
+  const names = new Map();
+  let skipped = 0;
+
+  for (const line of stdout.split("\n")) {
+    if (line === "") continue;
+    const fields = splitRecord(line, 1);
+    if (fields === null) {
+      skipped += 1;
+      continue;
+    }
+    const [windowId, name] = fields;
+    names.set(windowId, name);
+  }
+
+  assertParsed(names.size, skipped, "list-windows");
+  return names;
+}
+
+/**
+ * tmux produced output we could not read: fail loudly instead of reporting
+ * "nothing to do" for a server we simply failed to understand.
+ */
+function assertParsed(parsed, skipped, command) {
+  if (parsed === 0 && skipped > 0) {
+    throw new ToolError(
+      `could not parse the output of tmux ${command} (${skipped} line(s)); ` +
+        "re-run with --debug and report this with your tmux version",
+    );
+  }
+}
 
 /**
  * @param {string} raw e.g. "tmux 3.6b"
@@ -138,25 +219,20 @@ export function createTmux({ socket = null, env = process.env, run = execTmux, d
     },
 
     /**
-     * @returns {Promise<Array<{paneId: string, title: string, active: string, inMode: string, windowId: string, windowName: string}>>}
-     * @throws {ToolError} when tmux cannot list panes; callers must not mistake that for "nothing to do"
+     * @returns {Promise<Array<{paneId: string, title: string, active: string, inMode: string, windowId: string, windowName: string | null}>>
+     * @throws {ToolError} when tmux cannot list panes, or its output cannot be read
      */
     async listPanes() {
-      const result = await invoke(["list-panes", "-a", "-F", PANE_FORMAT]);
-      assertOk(result, "list-panes -a");
-      return result.stdout
-        .split("\n")
-        .filter((line) => line !== "")
-        .map((line) => line.split(FIELD_SEP))
-        .filter((fields) => fields.length === 6)
-        .map(([paneId, title, active, inMode, windowId, windowName]) => ({
-          paneId,
-          title,
-          active,
-          inMode,
-          windowId,
-          windowName,
-        }));
+      const paneResult = await invoke(["list-panes", "-a", "-F", PANE_FORMAT]);
+      assertOk(paneResult, "list-panes -a");
+      const windowResult = await invoke(["list-windows", "-a", "-F", WINDOW_FORMAT]);
+      assertOk(windowResult, "list-windows -a");
+
+      const names = parseWindowNames(windowResult.stdout);
+      return parsePaneListing(paneResult.stdout).map((pane) => ({
+        ...pane,
+        windowName: names.get(pane.windowId) ?? null,
+      }));
     },
   };
 }
