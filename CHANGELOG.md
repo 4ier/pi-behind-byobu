@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-09-25
+
 ### Added
 
 - `npm run check`: one local gate (syntax, the full test suite, and a smoke test
@@ -66,6 +68,7 @@ First release: window names follow Pi's terminal title.
   fields last, and fail loudly when output cannot be parsed instead of silently
   finding nothing to do.
 
-[Unreleased]: https://github.com/4ier/pi-behind-byobu/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/4ier/pi-behind-byobu/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/4ier/pi-behind-byobu/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/4ier/pi-behind-byobu/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/4ier/pi-behind-byobu/releases/tag/v0.1.0
