@@ -78,11 +78,16 @@ function assertOk(result, description) {
 }
 
 /**
- * @param {{socket?: string | null, env?: NodeJS.ProcessEnv, run?: typeof execTmux}} [deps]
+ * @param {{socket?: string | null, env?: NodeJS.ProcessEnv, run?: typeof execTmux, debug?: ((entry: {args: string[], result: object}) => void) | null}} [deps]
  */
-export function createTmux({ socket = null, env = process.env, run = execTmux } = {}) {
+export function createTmux({ socket = null, env = process.env, run = execTmux, debug = null } = {}) {
   const prefix = socket ? ["-L", socket] : [];
-  const invoke = (args, options) => run([...prefix, ...args], { env, ...options });
+  const invoke = async (args, options) => {
+    const argv = [...prefix, ...args];
+    const result = await run(argv, { env, ...options });
+    if (debug) debug({ args: argv, result });
+    return result;
+  };
 
   return {
     socket,

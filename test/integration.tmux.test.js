@@ -78,6 +78,7 @@ test(
     const installed = await run(process.execPath, [
       BIN,
       "install",
+      "--debug",
       "--config",
       configPath,
       "--tmux-socket",
@@ -98,6 +99,7 @@ test(
         "install reported no rename of the already-running Pi window",
         `stdout: ${JSON.stringify(installed.stdout)}`,
         `stderr: ${JSON.stringify(installed.stderr)}`,
+        `installed.stderr:\n${installed.stderr}`,
         `window_name: ${JSON.stringify(await display("#{window_name}"))}`,
         `pane_title:  ${JSON.stringify(await display("#{pane_title}"))}`,
         `command:     ${JSON.stringify(await display("#{pane_current_command}"))}`,

@@ -32,6 +32,7 @@ Options
   --strip-prefix         Drop the "π - " prefix from window names
   --dry-run              Show what would change without writing anything
   --no-refresh           Do not rename windows that are already running
+  --debug                Print every tmux command the tool runs (stderr)
   --quiet                Only report problems
   -h, --help             Show this help
   -V, --version          Show the version
@@ -54,12 +55,13 @@ const FLAGS = {
   "dry-run": "boolean",
   "no-refresh": "boolean",
   "quiet": "boolean",
+  "debug": "boolean",
 };
 
 const COMMAND_FLAGS = {
-  install: ["config", "tmux-socket", "title-prefix", "max-length", "strip-prefix", "dry-run", "no-refresh", "quiet"],
-  refresh: ["config", "tmux-socket", "title-prefix", "max-length", "strip-prefix", "quiet"],
-  doctor: ["config", "tmux-socket", "title-prefix", "max-length", "strip-prefix", "quiet"],
+  install: ["config", "tmux-socket", "title-prefix", "max-length", "strip-prefix", "dry-run", "no-refresh", "debug", "quiet"],
+  refresh: ["config", "tmux-socket", "title-prefix", "max-length", "strip-prefix", "debug", "quiet"],
+  doctor: ["config", "tmux-socket", "title-prefix", "max-length", "strip-prefix", "debug", "quiet"],
   uninstall: ["config", "tmux-socket", "title-prefix", "max-length", "strip-prefix", "dry-run", "quiet"],
 };
 
@@ -73,6 +75,7 @@ export function parseArgs(argv) {
     tmuxSocket: undefined,
     dryRun: false,
     quiet: false,
+    debug: false,
     noRefresh: false,
     formatOptions: {},
   };
@@ -143,6 +146,9 @@ export function parseArgs(argv) {
         case "quiet":
           options.quiet = true;
           break;
+        case "debug":
+          options.debug = true;
+          break;
         default:
           throw new UsageError(`unhandled option --${name}`);
       }
@@ -169,6 +175,19 @@ export function parseArgs(argv) {
   }
 
   return { command, options, help, version };
+}
+
+/**
+ * Debug trace: every tmux invocation with its result, on stderr so it never
+ * mixes with the machine-readable output of a command.
+ *
+ * @param {{args: string[], result: {code: number|null, stdout: string, stderr: string}}} entry
+ */
+export function traceTmux({ args, result }) {
+  const lines = [`[debug] tmux ${args.join(" ")}`, `[debug]   exit ${result.code}`];
+  if (result.stdout.trim() !== "") lines.push(`[debug]   stdout ${JSON.stringify(result.stdout)}`);
+  if (result.stderr.trim() !== "") lines.push(`[debug]   stderr ${JSON.stringify(result.stderr)}`);
+  process.stderr.write(`${lines.join("\n")}\n`);
 }
 
 /**
@@ -204,7 +223,11 @@ export async function run(argv, { env = process.env, write = (text) => process.s
 
   const ui = createUi({ quiet: parsed.options.quiet, write });
   const paths = resolveConfigPath(parsed.options.config, { env });
-  const tmux = createTmux({ socket: parsed.options.tmuxSocket ?? null, env });
+  const tmux = createTmux({
+    socket: parsed.options.tmuxSocket ?? null,
+    env,
+    debug: parsed.options.debug ? traceTmux : null,
+  });
 
   try {
     return await COMMANDS[parsed.command]({
