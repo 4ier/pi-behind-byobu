@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `npm run check`: one local gate (syntax, the full test suite, and a smoke test
+  that packs the tarball and runs the CLI from inside it), the same command CI
+  runs.
+- `npm run release -- <patch|minor|major|x.y.z>`: rewrites the changelog and
+  version, commits, tags, and writes the release notes. It refuses to run while
+  `## [Unreleased]` is empty, so a release cannot ship without notes.
+- `.github/workflows/release.yml`: a manual "Release" workflow that runs the
+  same gate, cuts the tag, publishes the GitHub release, and verifies that the
+  tagged revision is installable through `npx github:`.
+- `.github/workflows/publish.yml`: publishes to npm on release once an
+  `NPM_TOKEN` secret exists, and skips (not fails) without one.
+- `RELEASING.md` and `AGENTS.md`: the release contract, written down for humans
+  and agents.
+
 ## [0.1.1] - 2026-09-25
 
 ### Fixed

@@ -11,9 +11,12 @@ throwaway server, so your own sessions are never touched).
 ```bash
 git clone https://github.com/4ier/pi-behind-byobu
 cd pi-behind-byobu
-npm test                 # unit + integration tests, no dependencies to install
+npm run check            # syntax + tests + packaged-artifact smoke test
 node bin/pi-behind-byobu.js --help
 ```
+
+`npm run check` is the whole gate and it is exactly what CI runs, so run it
+before pushing. `npm test` alone runs just the suite.
 
 There is no build step and no runtime dependency. `package.json` has no
 `dependencies` field and that is intentional - please keep it that way.
@@ -56,6 +59,8 @@ tmux -L scratch kill-server
   uninstall byte for byte.
 - **A test for every behaviour change.** Prefer a table-driven unit test; add an
   integration assertion when the behaviour depends on tmux itself.
+- **Follow the loop.** `npm run check`, commit, push, wait for green CI, and
+  release if the change is user-visible - see [`AGENTS.md`](AGENTS.md).
 - **Exit codes matter.** `0` success, `1` environment/tool failure, `2` usage
   error. `doctor` returns `1` when a check fails so it can gate a script.
 
@@ -70,8 +75,18 @@ Please include:
 For "the window name did not change", `tmux list-windows -a -F '#{window_index} name=[#{window_name}] title=[#{pane_title}]'`
 is the fastest way to show what tmux currently thinks.
 
+## Releasing
+
+Maintainers: [`RELEASING.md`](RELEASING.md). Releases go through
+`npm run release -- <patch|minor|major>` or the **Release** workflow, which
+rewrites the changelog and version, tags, and publishes the release. The version
+and the tag are never edited by hand.
+
 ## Pull requests
 
 Keep them focused, update `CHANGELOG.md` under `## [Unreleased]`, and make sure
-`npm test` passes. Explain the tmux behaviour you validated if the change depends
-on it.
+`npm run check` passes. Explain the tmux behaviour you validated if the change
+depends on it.
+
+Agents working in this repository should also read [`AGENTS.md`](AGENTS.md),
+which states the rules that are easy to forget.

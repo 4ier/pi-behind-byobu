@@ -1,6 +1,7 @@
 # pi-behind-byobu
 
 [![CI](https://github.com/4ier/pi-behind-byobu/actions/workflows/ci.yml/badge.svg)](https://github.com/4ier/pi-behind-byobu/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/4ier/pi-behind-byobu)](https://github.com/4ier/pi-behind-byobu/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](package.json)
 

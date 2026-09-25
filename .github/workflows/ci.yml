@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
@@ -10,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  check:
     name: node ${{ matrix.node }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -26,6 +27,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
+      # The integration suite drives a real tmux server, so do not let it skip.
       - name: Ensure tmux is available
         run: |
           if command -v tmux >/dev/null 2>&1; then
@@ -36,14 +38,7 @@ jobs:
             brew install tmux
           fi
 
-      - name: Syntax check
-        run: |
-          for file in bin/*.js src/*.js test/*.js test/fixtures/*.js; do
-            node --check "$file"
-          done
-
-      - name: Test
-        run: npm test
-
-      - name: Package contents
-        run: npm pack --dry-run
+      # One gate for everything: syntax, tests, and the packed artifact.
+      # `npm run check` is also what contributors run locally.
+      - name: Check
+        run: npm run check

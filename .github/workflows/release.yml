@@ -1,0 +1,87 @@
+name: Release
+
+# Cutting a release is one button. The gate runs first, then the changelog and
+# version are rewritten by scripts/release.mjs (the same script contributors run
+# locally), the tag is pushed, and the GitHub release is published with the
+# changelog section as its notes.
+#
+# Notes for maintainers:
+#   - `## [Unreleased]` must already contain the notes; the script refuses to run
+#     without them, which is the whole point.
+#   - Pushes made with GITHUB_TOKEN do not trigger other workflows, so this job
+#     runs the full gate itself instead of relying on CI.
+#   - Prefer this over tagging by hand: it cannot forget the changelog.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version: patch, minor, major, or an explicit x.y.z"
+        required: true
+        default: patch
+      dry_run:
+        description: "Dry run: show the plan, change nothing"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22.x"
+
+      - name: Ensure tmux is available
+        run: |
+          if command -v tmux >/dev/null 2>&1; then tmux -V; else sudo apt-get update && sudo apt-get install -y tmux; fi
+
+      - name: Gate
+        run: npm run check
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Cut the release
+        run: |
+          node scripts/release.mjs "${{ inputs.version }}" \
+            --notes-file "$RUNNER_TEMP/notes.md" \
+            ${{ inputs.dry_run && '--dry-run' || '' }}
+
+      - name: Push the commit and tag
+        if: ${{ !inputs.dry_run }}
+        run: git push --follow-tags
+
+      - name: Publish the GitHub release
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          gh release create "v$version" --title "v$version" --notes-file "$RUNNER_TEMP/notes.md"
+
+      - name: Verify the released tag is installable
+        if: ${{ !inputs.dry_run }}
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          cd "$RUNNER_TEMP"
+          for attempt in 1 2 3 4 5; do
+            if out="$(npx --yes "github:4ier/pi-behind-byobu#v$version" --version 2>/dev/null)" && [ "$out" = "$version" ]; then
+              echo "npx github:4ier/pi-behind-byobu#v$version -> $out"
+              exit 0
+            fi
+            echo "attempt $attempt did not resolve yet; retrying"
+            sleep 10
+          done
+          echo "::error::v$version is tagged but not installable via npx"
+          exit 1

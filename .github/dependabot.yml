@@ -1,0 +1,12 @@
+version: 2
+updates:
+  # Keep the workflow actions current: a stale major silently runs on a
+  # deprecated Node runtime, which is how this project once got a red CI run for
+  # reasons unrelated to its own code.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "ci"
+    labels: [dependencies]

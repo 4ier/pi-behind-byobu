@@ -1,0 +1,40 @@
+name: Publish to npm
+
+# Delivery step of the pipeline. It is inert until an `NPM_TOKEN` repository
+# secret exists: without one the job logs why it skipped and succeeds, so a
+# missing credential can never make a release look broken.
+#
+# See RELEASING.md for what the token needs to be.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  npm:
+    runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22.x"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Explain the skip
+        if: ${{ env.NODE_AUTH_TOKEN == '' }}
+        run: |
+          echo "NPM_TOKEN is not configured in this repository; skipping npm publish."
+          echo "The release is still installable with: npx github:4ier/pi-behind-byobu@<version>"
+
+      - name: Publish
+        if: ${{ env.NODE_AUTH_TOKEN != '' }}
+        run: |
+          npm pack --dry-run
+          npm publish --access public

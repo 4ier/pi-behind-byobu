@@ -26,10 +26,13 @@
     "README.md",
     "README.zh-CN.md",
     "CHANGELOG.md",
-    "LICENSE"
+    "LICENSE",
+    "scripts"
   ],
   "scripts": {
-    "test": "node --test --test-reporter=spec test/*.test.js"
+    "test": "node --test --test-reporter=spec test/*.test.js",
+    "check": "node scripts/check.mjs",
+    "release": "node scripts/release.mjs"
   },
   "repository": {
     "type": "git",

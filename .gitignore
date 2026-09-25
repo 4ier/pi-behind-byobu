@@ -4,3 +4,4 @@ npm-debug.log*
 .DS_Store
 .pi-behind-byobu.tmp
 *.pi-behind-byobu.tmp
+release-notes.md
