@@ -85,7 +85,20 @@ test(
     ], { env: { ...process.env, TMUX: "", TMUX_PANE: "", NO_COLOR: "1" } });
 
     assert.equal(installed.code, 0, `${installed.stdout}\n${installed.stderr}`);
-    assert.ok(installed.stdout.includes("Renamed 1 running window(s)"));
+    const renamed = /Renamed (\d+) running window\(s\)/.exec(installed.stdout);
+    assert.ok(
+      renamed && renamed[1] === "1",
+      [
+        "install reported no rename of the already-running Pi window",
+        `stdout: ${JSON.stringify(installed.stdout)}`,
+        `stderr: ${JSON.stringify(installed.stderr)}`,
+        `window_name: ${JSON.stringify(await display("#{window_name}"))}`,
+        `pane_title:  ${JSON.stringify(await display("#{pane_title}"))}`,
+        `command:     ${JSON.stringify(await display("#{pane_current_command}"))}`,
+        `in_mode:     ${JSON.stringify(await display("#{pane_in_mode}"))}`,
+        `active:      ${JSON.stringify(await display("#{pane_active}"))}`,
+      ].join("\n"),
+    );
     assert.ok((await fs.readFile(configPath, "utf8")).includes("set -g automatic-rename-format"));
 
     await waitFor(async () => (await display("#{window_name}")) === PI_TITLE, {
