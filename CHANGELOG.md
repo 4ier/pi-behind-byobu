@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-25
+
+### Fixed
+
+- `refresh` and `doctor` ignored which options `install` was run with, so a later
+  `refresh` could silently undo `--strip-prefix`, and `doctor` reported a healthy
+  setup as broken (a stale block plus stale window names) because it compared
+  against defaults nobody asked for. `install` now records its normalized options
+  in the managed block, `refresh` and `doctor` reuse them when the command line
+  passes none, and `doctor` prints the options in effect.
+
 ## [0.1.0] - 2026-09-25
 
 First release: window names follow Pi's terminal title.
@@ -39,5 +50,6 @@ First release: window names follow Pi's terminal title.
   fields last, and fail loudly when output cannot be parsed instead of silently
   finding nothing to do.
 
-[Unreleased]: https://github.com/4ier/pi-behind-byobu/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/4ier/pi-behind-byobu/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/4ier/pi-behind-byobu/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/4ier/pi-behind-byobu/releases/tag/v0.1.0

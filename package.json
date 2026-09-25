@@ -1,6 +1,6 @@
 {
   "name": "pi-behind-byobu",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Make Pi's session title drive Byobu/tmux window names, so a window list says what each Pi session is doing instead of \"node\".",
   "keywords": [
     "pi",

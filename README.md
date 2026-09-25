@@ -69,8 +69,8 @@ pi-behind-byobu doctor
 | Command | What it does |
 |---|---|
 | `install` | Write the managed block into Byobu's tmux config, apply it to the running server, and rename Pi windows that are already open |
-| `refresh` | Re-apply the rule to the running server and rename stale windows (use after tweaking options, or in a new server) |
-| `doctor` | Report whether the rule is installed, current, and actually in effect; exits non-zero on failure |
+| `refresh` | Re-apply the rule to the running server and rename stale windows (reuses the options `install` recorded; use after tweaking options, or in a new server) |
+| `doctor` | Report whether the rule is installed, current, and actually in effect; reuses the options `install` recorded; exits non-zero on failure |
 | `uninstall` | Remove the managed block and restore tmux's stock window naming |
 
 ## Options
