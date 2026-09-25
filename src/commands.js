@@ -11,6 +11,7 @@ import path from "node:path";
 import {
   BLOCK_BEGIN,
   hasBlock,
+  parseBlockOptions,
   readBlock,
   removeBlock,
   renderBlock,
@@ -19,9 +20,9 @@ import {
 import { detectByobu } from "./byobu.js";
 import { ToolError } from "./errors.js";
 import {
-  DEFAULT_TITLE_PREFIX,
   STOCK_AUTOMATIC_RENAME_FORMAT,
   buildAutomaticRenameFormat,
+  normalizeOptions,
   preferredWindowName,
 } from "./format.js";
 import { backupOnce, exists, readFileIfExists, writeFileAtomic } from "./fsx.js";
@@ -29,6 +30,40 @@ import { versionAtLeast } from "./tmux.js";
 
 /** Format modifiers used here have existed since tmux 3.0. */
 export const MIN_TMUX = { major: 3, minor: 0 };
+
+/**
+ * Options that a command must agree with what is installed: explicit CLI
+ * options win, otherwise the options recorded in the managed block, otherwise
+ * the defaults. Without this, `refresh` would silently undo `--strip-prefix`
+ * and `doctor` would report a healthy setup as broken.
+ *
+ * @param {{options: object, paths: object}} ctx
+ * @param {string | null} content current config file content
+ */
+function resolveFormatOptions(ctx, content) {
+  if (Object.keys(ctx.options.formatOptions).length > 0) {
+    return normalizeOptions(ctx.options.formatOptions);
+  }
+  let block = null;
+  if (typeof content === "string" && content !== "") {
+    try {
+      block = readBlock(content, ctx.paths.configPath);
+    } catch {
+      block = null; // Malformed blocks are reported separately by doctor.
+    }
+  }
+  return parseBlockOptions(block) ?? normalizeOptions(ctx.options.formatOptions);
+}
+
+/** Human-readable summary of the options in effect. */
+function describeOptions(options) {
+  const parts = [
+    `title-prefix=${JSON.stringify(options.titlePrefix)}`,
+    `max-length=${options.maxLength}`,
+  ];
+  if (options.stripPrefix) parts.push("strip-prefix");
+  return parts.join(" ");
+}
 
 /**
  * Windows whose active pane carries a Pi title but whose window name does not
@@ -66,9 +101,9 @@ export async function findStaleWindows(ctx, formatOptions = ctx.options.formatOp
   return stale;
 }
 
-async function findStaleWindowsOrReport(ctx, record) {
+async function findStaleWindowsOrReport(ctx, record, formatOptions) {
   try {
-    return await findStaleWindows(ctx);
+    return await findStaleWindows(ctx, formatOptions);
   } catch (error) {
     record(
       "fail",
@@ -91,7 +126,7 @@ async function canGoLive(ctx) {
  *
  * @returns {Promise<{skipped: boolean, refreshed: number | null, windows: object[]}>}
  */
-async function applyLive(ctx, format) {
+async function applyLive(ctx, format, formatOptions) {
   if (!(await canGoLive(ctx))) return { skipped: true, refreshed: 0, windows: [] };
 
   await ctx.tmux.setGlobalOption("automatic-rename", "on");
@@ -99,7 +134,7 @@ async function applyLive(ctx, format) {
 
   if (ctx.options.noRefresh) return { skipped: false, refreshed: null, windows: [] };
 
-  const stale = await findStaleWindows(ctx);
+  const stale = await findStaleWindows(ctx, formatOptions);
   for (const window of stale) {
     await ctx.tmux.renameWindow(window.paneId, window.preferred);
     // A manual name disables automatic-rename for that window, so re-enable it;
@@ -133,8 +168,9 @@ function reportLive(ctx, live) {
 
 export async function install(ctx) {
   const { ui, options, paths } = ctx;
-  const format = buildAutomaticRenameFormat(options.formatOptions);
-  const block = renderBlock(format);
+  const installOptions = normalizeOptions(options.formatOptions);
+  const format = buildAutomaticRenameFormat(installOptions);
+  const block = renderBlock(format, installOptions);
 
   const existing = await readFileIfExists(paths.configPath);
   const hadBlock = existing !== null && hasBlock(existing);
@@ -163,7 +199,7 @@ export async function install(ctx) {
     ui.out(`${paths.configPath} already up to date`);
   }
 
-  reportLive(ctx, await applyLive(ctx, format));
+  reportLive(ctx, await applyLive(ctx, format, installOptions));
   return 0;
 }
 
@@ -175,7 +211,9 @@ export async function refresh(ctx) {
     );
   }
 
-  const live = await applyLive(ctx, buildAutomaticRenameFormat(options.formatOptions));
+  const content = await readFileIfExists(ctx.paths.configPath);
+  const formatOptions = resolveFormatOptions(ctx, content);
+  const live = await applyLive(ctx, buildAutomaticRenameFormat(formatOptions), formatOptions);
   if (live.refreshed === null) ui.out("Skipped window refresh (--no-refresh).");
   else reportLive(ctx, live);
   return 0;
@@ -226,12 +264,14 @@ export async function doctor(ctx) {
   const record = (level, title, detail, fix) =>
     checks.push({ level, title, detail, fix });
 
-  const expected = buildAutomaticRenameFormat(options.formatOptions);
+  const content = await readFileIfExists(paths.configPath);
+  const formatOptions = resolveFormatOptions(ctx, content);
+  const expected = buildAutomaticRenameFormat(formatOptions);
 
   ui.heading("pi-behind-byobu doctor");
   ui.detail("config", paths.configPath);
   ui.detail("found via", paths.source === "--config" ? "--config" : paths.source);
-  ui.detail("title", `${options.formatOptions.titlePrefix ?? DEFAULT_TITLE_PREFIX} - ...`);
+  ui.detail("options", describeOptions(formatOptions));
   if (options.tmuxSocket) ui.detail("socket", options.tmuxSocket);
 
   if (!detectByobu({ env })) {
@@ -247,7 +287,6 @@ export async function doctor(ctx) {
     record("fail", "Byobu config directory does not exist", paths.dir, "pi-behind-byobu install");
   }
 
-  const content = await readFileIfExists(paths.configPath);
   if (content === null) {
     record("fail", "Byobu tmux config file not found", paths.configPath, "pi-behind-byobu install");
   } else if (!hasBlock(content)) {
@@ -257,7 +296,7 @@ export async function doctor(ctx) {
       `no "${BLOCK_BEGIN}" section in the config file`,
       "pi-behind-byobu install",
     );
-  } else if (readBlock(content, paths.configPath) !== renderBlock(expected)) {
+  } else if (readBlock(content, paths.configPath) !== renderBlock(expected, formatOptions)) {
     record(
       "warn",
       "Managed block is out of date",
@@ -322,7 +361,7 @@ export async function doctor(ctx) {
       );
     }
 
-    const stale = await findStaleWindowsOrReport(ctx, record);
+    const stale = await findStaleWindowsOrReport(ctx, record, formatOptions);
     if (stale !== null && stale.length > 0) {
       record(
         "warn",

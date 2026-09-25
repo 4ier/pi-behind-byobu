@@ -5,6 +5,7 @@ import {
   BLOCK_BEGIN,
   BLOCK_END,
   hasBlock,
+  parseBlockOptions,
   readBlock,
   removeBlock,
   renderBlock,
@@ -13,7 +14,8 @@ import {
 import { ToolError } from "../src/errors.js";
 
 const FORMAT = "#{?#{m:*π -*,#{pane_title}},#{=24:#{pane_title}},#{pane_current_command}}";
-const BLOCK = renderBlock(FORMAT);
+const OPTIONS = { titlePrefix: "π", maxLength: 24, stripPrefix: false };
+const BLOCK = renderBlock(FORMAT, OPTIONS);
 
 const USER_CONFIG = `# my byobu tweaks
 set -g status-interval 1
@@ -26,6 +28,20 @@ test("renderBlock produces the managed block", () => {
   assert.equal(lines.at(-1), BLOCK_END);
   assert.ok(lines.includes("set -g automatic-rename on"));
   assert.ok(lines.includes(`set -g automatic-rename-format '${FORMAT}'`));
+});
+
+test("renderBlock records the options it was called with", () => {
+  assert.deepEqual(parseBlockOptions(BLOCK), OPTIONS);
+  assert.deepEqual(
+    parseBlockOptions(renderBlock(FORMAT, { titlePrefix: "PI", maxLength: 0, stripPrefix: true })),
+    { titlePrefix: "PI", maxLength: 0, stripPrefix: true },
+  );
+});
+
+test("parseBlockOptions ignores blocks without options or with garbage", () => {
+  assert.equal(parseBlockOptions(BLOCK.split("\n").filter((l) => !l.startsWith("# options: ")).join("\n")), null);
+  assert.equal(parseBlockOptions("# options: {not json}"), null);
+  assert.equal(parseBlockOptions(null), null);
 });
 
 test("upsertBlock creates the file content when empty", () => {
@@ -50,7 +66,7 @@ test("upsertBlock is idempotent", () => {
 });
 
 test("upsertBlock replaces a stale block in place", () => {
-  const stale = renderBlock("old-format");
+  const stale = renderBlock("old-format", OPTIONS);
   const withStale = upsertBlock(USER_CONFIG, stale).content;
   const { content, changed } = upsertBlock(withStale, BLOCK);
 

@@ -4,6 +4,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { BLOCK_BEGIN, readBlock, renderBlock } from "../src/block.js";
+import { normalizeOptions } from "../src/format.js";
 import { doctor, findStaleWindows, install, refresh, uninstall } from "../src/commands.js";
 import { ToolError } from "../src/errors.js";
 import { buildAutomaticRenameFormat } from "../src/format.js";
@@ -40,7 +41,10 @@ test("install writes the block, applies it live and renames stale windows", asyn
 
   const content = await fs.readFile(configPath, "utf8");
   assert.ok(content.startsWith(USER_CONFIG), "user configuration must be preserved");
-  assert.equal(readBlock(content), renderBlock(buildAutomaticRenameFormat()));
+  assert.equal(
+    readBlock(content),
+    renderBlock(buildAutomaticRenameFormat(), normalizeOptions({})),
+  );
 
   assert.equal(state["automatic-rename"], "on");
   assert.equal(state["automatic-rename-format"], buildAutomaticRenameFormat());
@@ -369,4 +373,47 @@ test("doctor skips live checks when it is not attached to a server", async (t) =
 
   assert.equal(await doctor(ctx), 0);
   assert.ok(output.join("").includes("Not attached to a tmux server"));
+});
+
+test("refresh reuses the options recorded in the installed block", async (t) => {
+  const { dir, configPath } = await withTempDir(t);
+  const { ctx, calls, state } = createContext({
+    configPath,
+    dir,
+    options: { formatOptions: { stripPrefix: true } },
+    fake: { panes: [PI_PANE] },
+  });
+  await install(ctx);
+
+  // A later run without flags must not silently undo --strip-prefix.
+  ctx.options.formatOptions = {};
+  calls.length = 0;
+  assert.equal(await refresh(ctx), 0);
+
+  assert.ok(state["automatic-rename-format"].includes("s/^.*π - //"));
+  assert.deepEqual(
+    calls.filter((call) => call[0] === "rename-window"),
+    [["rename-window", "-t", "%1", "pi-behind-byobu"]],
+  );
+});
+
+test("doctor accepts a block installed with non-default options", async (t) => {
+  const { dir, configPath } = await withTempDir(t);
+  const { ctx, output } = createContext({
+    configPath,
+    dir,
+    env: { HOME: dir },
+    options: { formatOptions: { stripPrefix: true, maxLength: 12 } },
+    fake: { panes: [{ ...PI_PANE, windowName: "pi-behind-byobu" }] },
+  });
+  await install(ctx);
+
+  // No flags this time: doctor must infer the options from the block.
+  ctx.options.formatOptions = {};
+  output.length = 0;
+
+  assert.equal(await doctor(ctx), 0, output.join(""));
+  const text = output.join("");
+  assert.ok(text.includes("strip-prefix"));
+  assert.ok(text.includes("0 failure(s)"));
 });

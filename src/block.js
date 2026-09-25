@@ -6,24 +6,52 @@
  */
 
 import { ToolError } from "./errors.js";
+import { normalizeOptions } from "./format.js";
 
 export const BLOCK_BEGIN = "# >>> pi-behind-byobu >>>";
 export const BLOCK_END = "# <<< pi-behind-byobu <<<";
 
 /**
+ * The options an install used, recorded inside the block so that later
+ * `refresh` and `doctor` runs reuse them instead of falling back to defaults
+ * (and quietly undoing `--strip-prefix`, for example).
+ */
+const OPTIONS_PREFIX = "# options: ";
+
+/**
  * @param {string} format value for `automatic-rename-format`
+ * @param {{titlePrefix: string, maxLength: number, stripPrefix: boolean}} options normalized options
  * @returns {string}
  */
-export function renderBlock(format) {
+export function renderBlock(format, options) {
   return [
     BLOCK_BEGIN,
     "# Managed by pi-behind-byobu: this block is rewritten by `install`.",
     "# Pi publishes its session as the terminal title (OSC 0); Byobu would name the",
     "# window after the running command (node). Let the title win for Pi panes only.",
+    `${OPTIONS_PREFIX}${JSON.stringify(options)}`,
     "set -g automatic-rename on",
     `set -g automatic-rename-format '${format}'`,
     BLOCK_END,
   ].join("\n");
+}
+
+/**
+ * Options recorded in a block, or null when the block predates them or is
+ * unreadable.
+ *
+ * @param {string | null | undefined} block
+ * @returns {{titlePrefix: string, maxLength: number, stripPrefix: boolean} | null}
+ */
+export function parseBlockOptions(block) {
+  if (typeof block !== "string") return null;
+  const line = block.split("\n").find((candidate) => candidate.startsWith(OPTIONS_PREFIX));
+  if (line === undefined) return null;
+  try {
+    return normalizeOptions(JSON.parse(line.slice(OPTIONS_PREFIX.length)));
+  } catch {
+    return null;
+  }
 }
 
 /**
