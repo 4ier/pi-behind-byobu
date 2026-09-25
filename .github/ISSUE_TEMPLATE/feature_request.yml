@@ -1,0 +1,43 @@
+name: Feature request
+description: Suggest something that would make Pi nicer to live with inside Byobu
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: check [ROADMAP.md](https://github.com/4ier/pi-behind-byobu/blob/main/ROADMAP.md)
+        and the "out of scope" section there.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What is annoying or impossible today, in the window list or elsewhere.
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you would like instead
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What would it need?
+      options:
+        - "configuration only (a tmux/Byobu setting)"
+        - "a Pi extension (agent lifecycle state)"
+        - "not sure"
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Workarounds you tried
+      description: Including anything that half-worked, and why it was not enough.
+    validations:
+      required: false

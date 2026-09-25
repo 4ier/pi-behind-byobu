@@ -1,0 +1,72 @@
+name: Bug report
+description: Something did not work the way the README says it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. The fastest way to a fix is the output of
+        `pi-behind-byobu doctor` and what tmux currently believes about the window.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected, and what happened instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: "`pi-behind-byobu doctor` output"
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: tmux-state
+    attributes:
+      label: What tmux currently reports
+      description: Output of the command below, run inside the affected window.
+      value: "tmux list-windows -a -F '#{window_index} name=[#{window_name}] title=[#{pane_title}]'"
+      render: text
+    validations:
+      required: false
+
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: "`tmux -V`, `byobu --version`, `node --version`, OS"
+      placeholder: "tmux 3.6b / byobu 7.12 / node v22.14.0 / macOS 15.3"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: config-dir
+    attributes:
+      label: Where does Byobu keep its config?
+      options:
+        - "~/.config/byobu (XDG)"
+        - "~/.byobu (legacy)"
+        - "not sure"
+    validations:
+      required: false
+
+  - type: input
+    id: terminal
+    attributes:
+      label: Terminal emulator
+      placeholder: Kitty / Ghostty / iTerm2 / WezTerm / other
+    validations:
+      required: false
+
+  - type: textarea
+    id: options
+    attributes:
+      label: Options used
+      description: The exact command you ran, if you passed any options.
+      placeholder: pi-behind-byobu install --strip-prefix --max-length 18
+    validations:
+      required: false
