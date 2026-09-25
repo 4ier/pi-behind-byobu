@@ -86,6 +86,12 @@ test(
 
     assert.equal(installed.code, 0, `${installed.stdout}\n${installed.stderr}`);
     const renamed = /Renamed (\d+) running window\(s\)/.exec(installed.stdout);
+    const rawPanes = await tmux([
+      "list-panes",
+      "-a",
+      "-F",
+      ["#{pane_id}", "#{pane_title}", "#{pane_active}", "#{pane_in_mode}", "#{window_id}", "#{window_name}"].join("\u001f"),
+    ]);
     assert.ok(
       renamed && renamed[1] === "1",
       [
@@ -97,6 +103,7 @@ test(
         `command:     ${JSON.stringify(await display("#{pane_current_command}"))}`,
         `in_mode:     ${JSON.stringify(await display("#{pane_in_mode}"))}`,
         `active:      ${JSON.stringify(await display("#{pane_active}"))}`,
+        `list-panes code=${rawPanes.code} stdout=${JSON.stringify(rawPanes.stdout)} stderr=${JSON.stringify(rawPanes.stderr)}`,
       ].join("\n"),
     );
     assert.ok((await fs.readFile(configPath, "utf8")).includes("set -g automatic-rename-format"));

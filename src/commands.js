@@ -66,6 +66,20 @@ export async function findStaleWindows(ctx, formatOptions = ctx.options.formatOp
   return stale;
 }
 
+async function findStaleWindowsOrReport(ctx, record) {
+  try {
+    return await findStaleWindows(ctx);
+  } catch (error) {
+    record(
+      "fail",
+      "Could not list tmux panes",
+      error.message,
+      "check that the tmux on PATH is the one serving this session",
+    );
+    return null;
+  }
+}
+
 async function canGoLive(ctx) {
   if (!ctx.env.TMUX && !ctx.options.tmuxSocket) return false;
   return ctx.tmux.isServerRunning();
@@ -308,22 +322,26 @@ export async function doctor(ctx) {
       );
     }
 
-    const stale = await findStaleWindows(ctx);
-    if (stale.length > 0) {
+    const stale = await findStaleWindowsOrReport(ctx, record);
+    if (stale !== null && stale.length > 0) {
       record(
         "warn",
         `${stale.length} Pi window(s) still show a stale name`,
         stale.map((w) => `${w.paneId}  ${w.current} -> ${w.preferred}`).join("\n"),
         "pi-behind-byobu refresh",
       );
-    } else {
+    } else if (stale !== null) {
       record("ok", "No stale Pi window names");
     }
 
     if (env.TMUX_PANE) {
-      const mine = (await ctx.tmux.listPanes()).find((pane) => pane.paneId === env.TMUX_PANE);
-      if (mine) {
-        ui.detail("this pane", `${mine.paneId} title=[${mine.title}] name=[${mine.windowName}]`);
+      try {
+        const mine = (await ctx.tmux.listPanes()).find((pane) => pane.paneId === env.TMUX_PANE);
+        if (mine) {
+          ui.detail("this pane", `${mine.paneId} title=[${mine.title}] name=[${mine.windowName}]`);
+        }
+      } catch {
+        // Already reported above; the header detail is optional.
       }
     }
   }

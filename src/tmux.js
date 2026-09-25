@@ -132,10 +132,13 @@ export function createTmux({ socket = null, env = process.env, run = execTmux } 
       assertOk(await invoke(["rename-window", "-t", target, name]), `rename-window -t ${target}`);
     },
 
-    /** @returns {Promise<Array<{paneId: string, title: string, active: string, inMode: string, windowId: string, windowName: string}>>} */
+    /**
+     * @returns {Promise<Array<{paneId: string, title: string, active: string, inMode: string, windowId: string, windowName: string}>>}
+     * @throws {ToolError} when tmux cannot list panes; callers must not mistake that for "nothing to do"
+     */
     async listPanes() {
       const result = await invoke(["list-panes", "-a", "-F", PANE_FORMAT]);
-      if (result.code !== 0) return [];
+      assertOk(result, "list-panes -a");
       return result.stdout
         .split("\n")
         .filter((line) => line !== "")
