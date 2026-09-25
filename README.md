@@ -8,8 +8,19 @@
 Make **[Pi](https://github.com/earendil-works/pi-coding-agent)**'s session title drive **Byobu/tmux** window names.
 
 ```text
-before    1:zsh  2:node  3:node  4:node      ← which one is which?
-after     1:zsh  2:π - api-refactor  3:π - docs  4:π - pi-behind-byobu
+before    1:zsh  2:node        3:node      4:node            ← which session is which?
+after     1:zsh  2:π - api     3:π - docs  4:π - migration        (default)
+          1:zsh  2:api         3:docs      4:migration            (--strip-prefix)
+```
+
+The name tracks Pi itself: Pi publishes the session name in its terminal title,
+so naming a session — `/name`, or an extension that names sessions for you —
+makes the window list say what each session is *about*, and it updates while you
+work:
+
+```bash
+pi install npm:@fyeeme/pi-session-name   # auto-name sessions from the conversation
+export PI_SESSION_NAME_MODE=auto          # re-evaluate the name every turn
 ```
 
 ## The problem
@@ -53,6 +64,7 @@ pi-behind-byobu doctor
 pi-behind-byobu doctor
   config      ~/.config/byobu/.tmux.conf
   found via   BYOBU_CONFIG_DIR
+  options     title-prefix="π" max-length=24
   this pane   %9 title=[π - pi-behind-byobu] name=[π - pi-behind-byobu]
   ok    Managed block installed and current
   ok    tmux tmux 3.6b

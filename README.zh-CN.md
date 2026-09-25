@@ -7,8 +7,16 @@
 让 **[Pi](https://github.com/earendil-works/pi-coding-agent)** 的会话标题变成 **Byobu/tmux** 的窗口名。
 
 ```text
-之前   1:zsh  2:node  3:node  4:node       ← 哪个是哪个？
-之后   1:zsh  2:π - api-refactor  3:π - docs  4:π - pi-behind-byobu
+之前   1:zsh  2:node       3:node     4:node            ← 哪个是哪个？
+之后   1:zsh  2:π - api    3:π - docs 4:π - migration       （默认）
+       1:zsh  2:api        3:docs     4:migration           （--strip-prefix）
+```
+
+名字跟着 Pi 走：Pi 会把会话名写进终端标题，所以只要给会话起个名 —— `/name`，或者装一个自动命名的扩展 —— 窗口列表就能说出每个会话**在干什么**，而且会随着任务推进实时更新：
+
+```bash
+pi install npm:@fyeeme/pi-session-name   # 自动根据对话内容给会话命名
+export PI_SESSION_NAME_MODE=auto          # 每轮重新评估名字（跟着任务变）
 ```
 
 ## 问题
@@ -54,6 +62,7 @@ pi-behind-byobu doctor
 pi-behind-byobu doctor
   config      ~/.config/byobu/.tmux.conf
   found via   BYOBU_CONFIG_DIR
+  options     title-prefix="π" max-length=24
   this pane   %9 title=[π - pi-behind-byobu] name=[π - pi-behind-byobu]
   ok    Managed block installed and current
   ok    tmux tmux 3.6b

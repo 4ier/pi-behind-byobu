@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Documentation: the headline example now shows both the default `π - <name>`
+  form and the shorter `--strip-prefix` output, `doctor`'s sample output includes
+  the options line it prints, and the README points at
+  [`@fyeeme/pi-session-name`](https://www.npmjs.com/package/@fyeeme/pi-session-name)
+  for sessions that name themselves as the task moves.
+
 ## [0.1.2] - 2026-09-25
 
 ### Added

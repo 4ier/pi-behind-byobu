@@ -21,7 +21,7 @@ already open, and ships a `doctor` that can tell "not installed", "stale" and
 The window list should answer "which one needs me?" without switching windows:
 
 ```text
-2:⠋ π - api-refactor   3:π - docs   4:π? π - migration
+2:⠋ api-refactor       3:docs       4:api?
   ^ working              idle         ^ waiting for input
 ```
 
