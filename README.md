@@ -93,7 +93,7 @@ pi-behind-byobu doctor
 | `--config <path>` | auto-detect | tmux config file Byobu sources (a directory gets `.tmux.conf` appended) |
 | `--tmux-socket <name>` | current server | Talk to a specific tmux socket (`tmux -L <name>`) |
 | `--title-prefix <text>` | `π` | Prefix Pi writes into the terminal title |
-| `--max-length <n>` | `24` | Truncate window names to `n` characters, `0` disables truncation |
+| `--max-length <n>` | `24` | Truncate window names to `n` terminal columns, `0` disables truncation (tmux measures display width, so a CJK title is not cut at twice the intended length) |
 | `--keep-prefix` | off | Show `π - my-project` instead of `my-project` |
 | `--strip-prefix` | on | Drop Pi's prefix (the default; still accepted for scripts) |
 | `--dry-run` | off | Print what would change, write nothing |
@@ -124,7 +124,7 @@ Reading the format inside out:
 | Part | Meaning |
 |---|---|
 | `#{m:*π -*,#{pane_title}}` | fnmatch test: does the pane title contain `π -`? (spinner frames from Pi extensions still match) |
-| `#{=24:#{s/^.*π - //:pane_title}}` | if yes, drop Pi's prefix and truncate to 24 characters |
+| `#{=24:#{s/^.*π - //:pane_title}}` | if yes, drop Pi's prefix and truncate to 24 columns |
 | `#{?pane_in_mode,[tmux],#{pane_current_command}}#{?pane_dead,[dead],}` | if no, tmux's stock behaviour, unchanged |
 
 The prefix guard is why plain shells keep their names: a shell's title is usually the hostname, so it fails the test and falls through to `zsh`, `vim`, and so on.

@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Documented that `--max-length` counts terminal Columns, not characters: tmux
+  truncates by display width, so a CJK session title is cut at 24 columns rather
+  than twice that. Verified against tmux 3.6b with mixed Latin/CJK titles.
+
 ## [0.2.0] - 2026-09-26
 
 ### Changed

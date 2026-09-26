@@ -91,7 +91,7 @@ pi-behind-byobu doctor
 | `--config <path>` | 自动探测 | Byobu 读的那个 tmux 配置文件（传目录会自动补 `.tmux.conf`） |
 | `--tmux-socket <name>` | 当前 server | 指定 tmux socket（`tmux -L <name>`） |
 | `--title-prefix <text>` | `π` | Pi 写在标题里的前缀 |
-| `--max-length <n>` | `24` | 窗口名截断到 n 个字符，`0` 表示不截断 |
+| `--max-length <n>` | `24` | 窗口名截断到 n 个终端列宽，`0` 表示不截断（tmux 按显示宽度算，所以中文标题不会被砍掉一半） |
 | `--keep-prefix` | 关 | 显示 `π - my-project` 而不是 `my-project` |
 | `--strip-prefix` | 开 | 去掉 Pi 的前缀（默认行为；保留给脚本显式使用） |
 | `--dry-run` | 关 | 只打印会改什么，不落盘 |
@@ -122,7 +122,7 @@ set -g automatic-rename-format '#{?#{m:*π -*,#{pane_title}},#{=24:#{s/^.*π - /
 | 片段 | 含义 |
 |---|---|
 | `#{m:*π -*,#{pane_title}}` | 通配符匹配：pane 标题里有 `π -` 吗？（Pi 扩展加的转圈帧也照样匹配） |
-| `#{=24:#{s/^.*π - //:pane_title}}` | 有，去掉 Pi 的前缀，截断到 24 个字符 |
+| `#{=24:#{s/^.*π - //:pane_title}}` | 有，去掉 Pi 的前缀，截断到 24 列宽 |
 | `#{?pane_in_mode,[tmux],#{pane_current_command}}#{?pane_dead,[dead],}` | 没有，走 tmux 原样逻辑，完全不变 |
 
 这个前缀守卫就是普通 shell 窗口不受影响的原因：shell 的标题通常是主机名，匹配不上 `π -`，于是照旧显示 `zsh`。
