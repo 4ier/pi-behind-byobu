@@ -29,6 +29,13 @@ export const DEFAULT_TITLE_PREFIX = "π";
 export const DEFAULT_MAX_LENGTH = 24;
 
 /**
+ * Pi's `π - ` prefix is stripped by default: the window list is narrow, and the
+ * session name is the part that says what a window is. `--keep-prefix` brings it
+ * back for setups that want Pi windows to be recognisable at a glance.
+ */
+export const DEFAULT_STRIP_PREFIX = true;
+
+/**
  * Characters that would break out of the tmux format string, the `s/…/…/`
  * delimiter, the single-quoted config line, or fnmatch matching.
  */
@@ -41,7 +48,7 @@ const FORBIDDEN_PREFIX_CHARS = /[,:{}#/'[\]()*?\\]/;
 export function normalizeOptions(options = {}) {
   const titlePrefix = options.titlePrefix ?? DEFAULT_TITLE_PREFIX;
   const maxLength = options.maxLength ?? DEFAULT_MAX_LENGTH;
-  const stripPrefix = Boolean(options.stripPrefix);
+  const stripPrefix = Boolean(options.stripPrefix ?? DEFAULT_STRIP_PREFIX);
 
   if (typeof titlePrefix !== "string" || titlePrefix.trim() === "") {
     throw new UsageError("--title-prefix must be a non-empty string");

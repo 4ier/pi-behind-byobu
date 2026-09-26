@@ -51,7 +51,8 @@ test("install writes the block, applies it live and renames stale windows", asyn
 
   assert.deepEqual(
     calls.filter((call) => call[0] === "rename-window"),
-    [["rename-window", "-t", "%1", "π - pi-behind-byobu"]],
+    [["rename-window", "-t", "%1", "pi-behind-byobu"]],
+    "the default drops Pi's prefix, leaving the session name",
   );
   assert.ok(
     calls.some(
@@ -205,7 +206,8 @@ test("refresh re-applies the rule and renames stale windows", async (t) => {
   assert.equal(await refresh(ctx), 0);
   assert.deepEqual(
     calls.filter((call) => call[0] === "rename-window"),
-    [["rename-window", "-t", "%1", "π - pi-behind-byobu"]],
+    [["rename-window", "-t", "%1", "pi-behind-byobu"]],
+    "the default drops Pi's prefix, leaving the session name",
   );
 });
 
@@ -220,7 +222,7 @@ test("findStaleWindows skips non-Pi panes, inactive panes and copy mode", async 
         { paneId: "%2", title: "π - b", windowId: "@2", windowName: "node", active: "0" },
         { paneId: "%3", title: "π - c", windowId: "@3", windowName: "node", inMode: "1" },
         { paneId: "%4", title: "zsh", windowId: "@4", windowName: "zsh" },
-        { paneId: "%5", title: "π - e", windowId: "@5", windowName: "π - e" },
+        { paneId: "%5", title: "π - e", windowId: "@5", windowName: "e" },
       ],
     },
   });
@@ -380,21 +382,38 @@ test("refresh reuses the options recorded in the installed block", async (t) => 
   const { ctx, calls, state } = createContext({
     configPath,
     dir,
-    options: { formatOptions: { stripPrefix: true } },
+    // Explicitly not the default any more: the recorded choice must win.
+    options: { formatOptions: { stripPrefix: false } },
     fake: { panes: [PI_PANE] },
   });
   await install(ctx);
 
-  // A later run without flags must not silently undo --strip-prefix.
+  // A later run without flags must not silently apply the current default.
   ctx.options.formatOptions = {};
   calls.length = 0;
   assert.equal(await refresh(ctx), 0);
 
-  assert.ok(state["automatic-rename-format"].includes("s/^.*π - //"));
+  assert.ok(!state["automatic-rename-format"].includes("s/^.*π - //"));
   assert.deepEqual(
     calls.filter((call) => call[0] === "rename-window"),
-    [["rename-window", "-t", "%1", "pi-behind-byobu"]],
+    [["rename-window", "-t", "%1", "π - pi-behind-byobu"]],
   );
+});
+
+test("install drops Pi's prefix by default", async (t) => {
+  const { dir, configPath } = await withTempDir(t);
+  const { ctx, state } = createContext({
+    configPath,
+    dir,
+    options: { formatOptions: { stripPrefix: false, maxLength: 12 } },
+    fake: { panes: [{ ...PI_PANE, windowName: "pi-behind-byobu" }] },
+  });
+  await install(ctx);
+
+  // A fresh install with no flags uses the current default ...
+  ctx.options.formatOptions = {};
+  await install(ctx);
+  assert.ok(state["automatic-rename-format"].includes("s/^.*π - //"));
 });
 
 test("doctor accepts a block installed with non-default options", async (t) => {
@@ -403,8 +422,8 @@ test("doctor accepts a block installed with non-default options", async (t) => {
     configPath,
     dir,
     env: { HOME: dir },
-    options: { formatOptions: { stripPrefix: true, maxLength: 12 } },
-    fake: { panes: [{ ...PI_PANE, windowName: "pi-behind-byobu" }] },
+    options: { formatOptions: { stripPrefix: false, maxLength: 12 } },
+    fake: { panes: [{ ...PI_PANE, windowName: "π - pi-behind-byobu" }] },
   });
   await install(ctx);
 
@@ -414,6 +433,7 @@ test("doctor accepts a block installed with non-default options", async (t) => {
 
   assert.equal(await doctor(ctx), 0, output.join(""));
   const text = output.join("");
-  assert.ok(text.includes("strip-prefix"));
+  assert.ok(text.includes("max-length=12"));
+  assert.ok(!text.includes("strip-prefix"));
   assert.ok(text.includes("0 failure(s)"));
 });

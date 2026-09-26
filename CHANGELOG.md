@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Pi's `π - ` prefix is dropped by default.** Window names are now just the
+  session name (`docs`, or `api - my-project`), because the window list is narrow
+  and the session name is the part that says what a window is. `--strip-prefix`
+  is still accepted, and `--keep-prefix` restores the old `π - docs` form.
+  Existing installs are unaffected until `install` is run again: the options an
+  install used are recorded in the managed block and `refresh`/`doctor` reuse
+  them.
+
 ## [0.1.3] - 2026-09-25
 
 ### Changed

@@ -9,8 +9,8 @@ Make **[Pi](https://github.com/earendil-works/pi-coding-agent)**'s session title
 
 ```text
 before    1:zsh  2:node        3:node      4:node            ← which session is which?
-after     1:zsh  2:π - api     3:π - docs  4:π - migration        (default)
-          1:zsh  2:api         3:docs      4:migration            (--strip-prefix)
+after     1:zsh  2:api         3:docs      4:migration            (default)
+          1:zsh  2:π - api     3:π - docs  4:π - migration        (--keep-prefix)
 ```
 
 The name tracks Pi itself: Pi publishes the session name in its terminal title,
@@ -64,8 +64,8 @@ pi-behind-byobu doctor
 pi-behind-byobu doctor
   config      ~/.config/byobu/.tmux.conf
   found via   BYOBU_CONFIG_DIR
-  options     title-prefix="π" max-length=24
-  this pane   %9 title=[π - pi-behind-byobu] name=[π - pi-behind-byobu]
+  options     title-prefix="π" max-length=24 strip-prefix
+  this pane   %9 title=[π - pi-behind-byobu] name=[pi-behind-byobu]
   ok    Managed block installed and current
   ok    tmux tmux 3.6b
   ok    Running server: automatic-rename is on
@@ -94,14 +94,15 @@ pi-behind-byobu doctor
 | `--tmux-socket <name>` | current server | Talk to a specific tmux socket (`tmux -L <name>`) |
 | `--title-prefix <text>` | `π` | Prefix Pi writes into the terminal title |
 | `--max-length <n>` | `24` | Truncate window names to `n` characters, `0` disables truncation |
-| `--strip-prefix` | off | Show `my-project` instead of `π - my-project` |
+| `--keep-prefix` | off | Show `π - my-project` instead of `my-project` |
+| `--strip-prefix` | on | Drop Pi's prefix (the default; still accepted for scripts) |
 | `--dry-run` | off | Print what would change, write nothing |
 | `--no-refresh` | off | Apply to the running server without renaming open windows |
 | `--quiet` | off | Only report problems |
 
 ```bash
-# short, un-prefixed names because the window list is narrow
-pi-behind-byobu install --strip-prefix --max-length 18
+# short names: the prefix is already gone by default
+pi-behind-byobu install --max-length 18
 
 # Pi installed under a custom name (piConfigName): its titles start with "PI"
 pi-behind-byobu install --title-prefix PI
@@ -114,7 +115,7 @@ One block in the tmux config file Byobu reads:
 ```tmux
 # >>> pi-behind-byobu >>>
 set -g automatic-rename on
-set -g automatic-rename-format '#{?#{m:*π -*,#{pane_title}},#{=24:#{pane_title}},#{?pane_in_mode,[tmux],#{pane_current_command}}#{?pane_dead,[dead],}}'
+set -g automatic-rename-format '#{?#{m:*π -*,#{pane_title}},#{=24:#{s/^.*π - //:pane_title}},#{?pane_in_mode,[tmux],#{pane_current_command}}#{?pane_dead,[dead],}}'
 # <<< pi-behind-byobu <<<
 ```
 
@@ -123,7 +124,7 @@ Reading the format inside out:
 | Part | Meaning |
 |---|---|
 | `#{m:*π -*,#{pane_title}}` | fnmatch test: does the pane title contain `π -`? (spinner frames from Pi extensions still match) |
-| `#{=24:#{pane_title}}` | if yes, use the pane title, truncated to 24 characters |
+| `#{=24:#{s/^.*π - //:pane_title}}` | if yes, drop Pi's prefix and truncate to 24 characters |
 | `#{?pane_in_mode,[tmux],#{pane_current_command}}#{?pane_dead,[dead],}` | if no, tmux's stock behaviour, unchanged |
 
 The prefix guard is why plain shells keep their names: a shell's title is usually the hostname, so it fails the test and falls through to `zsh`, `vim`, and so on.
@@ -153,7 +154,7 @@ Run `pi-behind-byobu doctor`. It compares the running server against the config,
 That window was renamed by hand (`tmux rename-window`), which is tmux's way of opting a window out of automatic renaming. Run `pi-behind-byobu refresh` to rename it again and re-enable automatic naming.
 
 **The names are too long.**
-`--max-length 18`, or `--strip-prefix`, then `refresh`.
+`--max-length 18`, then `refresh`. `--keep-prefix` puts Pi's `π - ` back (`install` re-runs are how you change it).
 
 **I want it gone.**
 `pi-behind-byobu uninstall`. Your backup is at `<config>.pi-behind-byobu.bak`.

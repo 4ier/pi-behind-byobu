@@ -29,7 +29,8 @@ Options
   --title-prefix <text>  Prefix Pi writes into the terminal title (default: π)
   --max-length <n>       Truncate window names to n characters, 0 disables it
                          (default: 24)
-  --strip-prefix         Drop the "π - " prefix from window names
+  --keep-prefix          Show "π - my-project" instead of "my-project"
+  --strip-prefix         Drop the prefix (the default; still accepted)
   --dry-run              Show what would change without writing anything
   --no-refresh           Do not rename windows that are already running
   --debug                Print every tmux command the tool runs (stderr)
@@ -52,6 +53,7 @@ const FLAGS = {
   "title-prefix": "value",
   "max-length": "value",
   "strip-prefix": "boolean",
+  "keep-prefix": "boolean",
   "dry-run": "boolean",
   "no-refresh": "boolean",
   "quiet": "boolean",
@@ -59,9 +61,9 @@ const FLAGS = {
 };
 
 const COMMAND_FLAGS = {
-  install: ["config", "tmux-socket", "title-prefix", "max-length", "strip-prefix", "dry-run", "no-refresh", "debug", "quiet"],
-  refresh: ["config", "tmux-socket", "title-prefix", "max-length", "strip-prefix", "debug", "quiet"],
-  doctor: ["config", "tmux-socket", "title-prefix", "max-length", "strip-prefix", "debug", "quiet"],
+  install: ["config", "tmux-socket", "title-prefix", "max-length", "strip-prefix", "keep-prefix", "dry-run", "no-refresh", "debug", "quiet"],
+  refresh: ["config", "tmux-socket", "title-prefix", "max-length", "strip-prefix", "keep-prefix", "debug", "quiet"],
+  doctor: ["config", "tmux-socket", "title-prefix", "max-length", "strip-prefix", "keep-prefix", "debug", "quiet"],
   uninstall: ["config", "tmux-socket", "title-prefix", "max-length", "strip-prefix", "dry-run", "quiet"],
 };
 
@@ -136,6 +138,10 @@ export function parseArgs(argv) {
         case "strip-prefix":
           if (inline !== null) throw new UsageError("--strip-prefix does not take a value");
           options.formatOptions.stripPrefix = true;
+          break;
+        case "keep-prefix":
+          if (inline !== null) throw new UsageError("--keep-prefix does not take a value");
+          options.formatOptions.stripPrefix = false;
           break;
         case "dry-run":
           options.dryRun = true;

@@ -70,6 +70,17 @@ test("parseArgs accepts inline and separate values", () => {
   assert.equal(parsed.options.config, "/tmp/x/.tmux.conf");
 });
 
+test("parseArgs maps the prefix flags", () => {
+  assert.deepEqual(parseArgs(["install", "--keep-prefix"]).options.formatOptions, {
+    stripPrefix: false,
+  });
+  assert.deepEqual(parseArgs(["install", "--strip-prefix"]).options.formatOptions, {
+    stripPrefix: true,
+  });
+  // No flag: the default lives in format.js, not in the parser.
+  assert.deepEqual(parseArgs(["install"]).options.formatOptions, {});
+});
+
 test("parseArgs rejects unknown options and commands", () => {
   assert.throws(() => parseArgs(["install", "--nope"]), UsageError);
   assert.throws(() => parseArgs(["frobnicate"]), UsageError);

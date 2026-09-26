@@ -21,8 +21,12 @@ import { STOCK_FORMAT, waitFor } from "./helpers.js";
 const BIN = fileURLToPath(new URL("../bin/pi-behind-byobu.js", import.meta.url));
 const FIXTURE = fileURLToPath(new URL("./fixtures/emit-title.js", import.meta.url));
 const SOCKET = `pi-behind-byobu-it-${process.pid}`;
+// What Pi publishes, and what the window should be called after install. The
+// default drops Pi's "π - " prefix, so the two deliberately differ.
 const PI_TITLE = "π - integration-session";
+const EXPECTED_NAME = "integration-session";
 const RENAMED_TITLE = "π - renamed-session";
+const RENAMED_NAME = "renamed-session";
 
 function run(bin, args, options = {}) {
   return new Promise((resolve) => {
@@ -110,13 +114,13 @@ test(
     );
     assert.ok((await fs.readFile(configPath, "utf8")).includes("set -g automatic-rename-format"));
 
-    await waitFor(async () => (await display("#{window_name}")) === PI_TITLE, {
+    await waitFor(async () => (await display("#{window_name}")) === EXPECTED_NAME, {
       what: "the already-running window to be renamed",
     });
 
     // Pi's /rename publishes a new title; the window name must follow.
     await tmux(["send-keys", "-t", "it:1", RENAMED_TITLE, "Enter"]);
-    await waitFor(async () => (await display("#{window_name}")) === RENAMED_TITLE, {
+    await waitFor(async () => (await display("#{window_name}")) === RENAMED_NAME, {
       what: "a later title change to propagate",
     });
 

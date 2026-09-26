@@ -8,8 +8,8 @@
 
 ```text
 之前   1:zsh  2:node       3:node     4:node            ← 哪个是哪个？
-之后   1:zsh  2:π - api    3:π - docs 4:π - migration       （默认）
-       1:zsh  2:api        3:docs     4:migration           （--strip-prefix）
+之后   1:zsh  2:api        3:docs     4:migration           （默认）
+       1:zsh  2:π - api    3:π - docs 4:π - migration       （--keep-prefix）
 ```
 
 名字跟着 Pi 走：Pi 会把会话名写进终端标题，所以只要给会话起个名 —— `/name`，或者装一个自动命名的扩展 —— 窗口列表就能说出每个会话**在干什么**，而且会随着任务推进实时更新：
@@ -62,8 +62,8 @@ pi-behind-byobu doctor
 pi-behind-byobu doctor
   config      ~/.config/byobu/.tmux.conf
   found via   BYOBU_CONFIG_DIR
-  options     title-prefix="π" max-length=24
-  this pane   %9 title=[π - pi-behind-byobu] name=[π - pi-behind-byobu]
+  options     title-prefix="π" max-length=24 strip-prefix
+  this pane   %9 title=[π - pi-behind-byobu] name=[pi-behind-byobu]
   ok    Managed block installed and current
   ok    tmux tmux 3.6b
   ok    Running server: automatic-rename is on
@@ -92,14 +92,15 @@ pi-behind-byobu doctor
 | `--tmux-socket <name>` | 当前 server | 指定 tmux socket（`tmux -L <name>`） |
 | `--title-prefix <text>` | `π` | Pi 写在标题里的前缀 |
 | `--max-length <n>` | `24` | 窗口名截断到 n 个字符，`0` 表示不截断 |
-| `--strip-prefix` | 关 | 显示 `my-project` 而不是 `π - my-project` |
+| `--keep-prefix` | 关 | 显示 `π - my-project` 而不是 `my-project` |
+| `--strip-prefix` | 开 | 去掉 Pi 的前缀（默认行为；保留给脚本显式使用） |
 | `--dry-run` | 关 | 只打印会改什么，不落盘 |
 | `--no-refresh` | 关 | 只应用到 server，不改已经在跑的窗口 |
 | `--quiet` | 关 | 只输出问题 |
 
 ```bash
-# 窗口列表窄，用短名且去掉前缀
-pi-behind-byobu install --strip-prefix --max-length 18
+# 想要更短的名字（前缀默认就已经去掉了）
+pi-behind-byobu install --max-length 18
 
 # Pi 被改名过（piConfigName），它的标题前缀就不是 π
 pi-behind-byobu install --title-prefix PI
@@ -112,7 +113,7 @@ pi-behind-byobu install --title-prefix PI
 ```tmux
 # >>> pi-behind-byobu >>>
 set -g automatic-rename on
-set -g automatic-rename-format '#{?#{m:*π -*,#{pane_title}},#{=24:#{pane_title}},#{?pane_in_mode,[tmux],#{pane_current_command}}#{?pane_dead,[dead],}}'
+set -g automatic-rename-format '#{?#{m:*π -*,#{pane_title}},#{=24:#{s/^.*π - //:pane_title}},#{?pane_in_mode,[tmux],#{pane_current_command}}#{?pane_dead,[dead],}}'
 # <<< pi-behind-byobu <<<
 ```
 
@@ -121,7 +122,7 @@ set -g automatic-rename-format '#{?#{m:*π -*,#{pane_title}},#{=24:#{pane_title}
 | 片段 | 含义 |
 |---|---|
 | `#{m:*π -*,#{pane_title}}` | 通配符匹配：pane 标题里有 `π -` 吗？（Pi 扩展加的转圈帧也照样匹配） |
-| `#{=24:#{pane_title}}` | 有，就用 pane 标题，截断到 24 个字符 |
+| `#{=24:#{s/^.*π - //:pane_title}}` | 有，去掉 Pi 的前缀，截断到 24 个字符 |
 | `#{?pane_in_mode,[tmux],#{pane_current_command}}#{?pane_dead,[dead],}` | 没有，走 tmux 原样逻辑，完全不变 |
 
 这个前缀守卫就是普通 shell 窗口不受影响的原因：shell 的标题通常是主机名，匹配不上 `π -`，于是照旧显示 `zsh`。
@@ -151,7 +152,7 @@ tmux 只在 pane 标题**发生变化**时才重新套用 `automatic-rename-form
 那个窗口被手动改名过（`tmux rename-window`），tmux 以此为由关掉了它的自动命名。跑 `pi-behind-byobu refresh` 重新改名并恢复自动命名。
 
 **名字太长。**
-`--max-length 18` 或 `--strip-prefix`，然后 `refresh`。
+`--max-length 18`，然后 `refresh`。想保留 Pi 的 `π - ` 前缀就用 `--keep-prefix`（改选项都是重跑 `install`）。
 
 **想卸载。**
 `pi-behind-byobu uninstall`。备份在 `<配置文件>.pi-behind-byobu.bak`。

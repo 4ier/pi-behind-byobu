@@ -4,6 +4,7 @@ import test from "node:test";
 import { UsageError } from "../src/errors.js";
 import {
   DEFAULT_MAX_LENGTH,
+  DEFAULT_STRIP_PREFIX,
   DEFAULT_TITLE_PREFIX,
   STOCK_AUTOMATIC_RENAME_FORMAT,
   buildAutomaticRenameFormat,
@@ -15,11 +16,15 @@ import {
 test("defaults", () => {
   assert.equal(DEFAULT_TITLE_PREFIX, "π");
   assert.equal(DEFAULT_MAX_LENGTH, 24);
+  assert.equal(DEFAULT_STRIP_PREFIX, true);
   assert.deepEqual(normalizeOptions(), {
     titlePrefix: "π",
     maxLength: 24,
-    stripPrefix: false,
+    stripPrefix: true,
   });
+  // Explicitly asked for, either way round.
+  assert.equal(normalizeOptions({ stripPrefix: false }).stripPrefix, false);
+  assert.equal(normalizeOptions({ stripPrefix: true }).stripPrefix, true);
 });
 
 test("titleMatchPattern requires Pi's separator, not just the glyph", () => {
@@ -27,17 +32,28 @@ test("titleMatchPattern requires Pi's separator, not just the glyph", () => {
   assert.equal(titleMatchPattern("PI"), "*PI -*");
 });
 
-test("buildAutomaticRenameFormat: default", () => {
+test("buildAutomaticRenameFormat: default drops Pi's prefix", () => {
   assert.equal(
     buildAutomaticRenameFormat(),
+    `#{?#{m:*π -*,#{pane_title}},#{=24:#{s/^.*π - //:pane_title}},${STOCK_AUTOMATIC_RENAME_FORMAT}}`,
+  );
+});
+
+test("buildAutomaticRenameFormat: --keep-prefix keeps it", () => {
+  assert.equal(
+    buildAutomaticRenameFormat({ stripPrefix: false }),
     `#{?#{m:*π -*,#{pane_title}},#{=24:#{pane_title}},${STOCK_AUTOMATIC_RENAME_FORMAT}}`,
   );
 });
 
 test("buildAutomaticRenameFormat: truncation can be disabled", () => {
   assert.equal(
-    buildAutomaticRenameFormat({ maxLength: 0 }),
+    buildAutomaticRenameFormat({ maxLength: 0, stripPrefix: false }),
     `#{?#{m:*π -*,#{pane_title}},#{pane_title},${STOCK_AUTOMATIC_RENAME_FORMAT}}`,
+  );
+  assert.equal(
+    buildAutomaticRenameFormat({ maxLength: 0 }),
+    `#{?#{m:*π -*,#{pane_title}},#{s/^.*π - //:pane_title},${STOCK_AUTOMATIC_RENAME_FORMAT}}`,
   );
 });
 
@@ -72,13 +88,11 @@ test("normalizeOptions rejects a non-integer or negative max length", () => {
 });
 
 test("preferredWindowName mirrors the tmux expression", () => {
-  assert.equal(preferredWindowName("π - session - cwd"), "π - session - cwd");
-  assert.equal(preferredWindowName("π - session - cwd", { maxLength: 8 }), "π - sess");
-  assert.equal(preferredWindowName("π - session - cwd", { stripPrefix: true }), "session - cwd");
-  assert.equal(
-    preferredWindowName("⠋ π - session - cwd", { stripPrefix: true, maxLength: 10 }),
-    "session - ",
-  );
+  // Default: Pi's prefix goes away, the session name stays.
+  assert.equal(preferredWindowName("π - session - cwd"), "session - cwd");
+  assert.equal(preferredWindowName("π - session - cwd", { maxLength: 8 }), "session ");
+  assert.equal(preferredWindowName("π - session - cwd", { stripPrefix: false }), "π - session - cwd");
+  assert.equal(preferredWindowName("⠋ π - session - cwd", { maxLength: 10 }), "session - ");
 });
 
 test("preferredWindowName ignores non-Pi panes", () => {
@@ -97,7 +111,7 @@ test("preferredWindowName ignores non-Pi panes", () => {
 
 test("preferredWindowName truncates by code point, like tmux", () => {
   // "π - " is four code points, so a 5-character budget keeps one more.
-  assert.equal(preferredWindowName("π - 你好世界你好世界", { maxLength: 5 }), "π - 你");
-  assert.equal(preferredWindowName("π - 你好世界你好世界", { maxLength: 6 }), "π - 你好");
-  assert.equal(Array.from(preferredWindowName("π - 你好世界你好世界", { maxLength: 6 })).length, 6);
+  assert.equal(preferredWindowName("π - 你好世界你好世界", { maxLength: 1 }), "你");
+  assert.equal(preferredWindowName("π - 你好世界你好世界", { maxLength: 2 }), "你好");
+  assert.equal(Array.from(preferredWindowName("π - 你好世界你好世界", { maxLength: 2 })).length, 2);
 });
