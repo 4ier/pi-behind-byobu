@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-26
+
 ### Changed
 
 - **Pi's `π - ` prefix is dropped by default.** Window names are now just the
@@ -88,7 +90,8 @@ First release: window names follow Pi's terminal title.
   fields last, and fail loudly when output cannot be parsed instead of silently
   finding nothing to do.
 
-[Unreleased]: https://github.com/4ier/pi-behind-byobu/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/4ier/pi-behind-byobu/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/4ier/pi-behind-byobu/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/4ier/pi-behind-byobu/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/4ier/pi-behind-byobu/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/4ier/pi-behind-byobu/compare/v0.1.0...v0.1.1
